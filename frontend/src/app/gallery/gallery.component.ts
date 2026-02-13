@@ -15,9 +15,9 @@ import { PhotoService } from '../services/photo.service';
       </mat-card-header>
       <mat-card-content>
         <mat-grid-list cols="4" rowHeight="250px" gutterSize="10px">
-          <mat-grid-tile *ngFor="let photo of photos">
+          <mat-grid-tile *ngFor="let photo of photos; let i = index">
             <mat-card>
-              <img mat-card-image [src]="photo.imageUrl" [alt]="photo.fileName" loading="lazy">
+              <img mat-card-image [src]="photo.imageUrl" [alt]="photo.fileName" [loading]="i < 4 ? 'eager' : 'lazy'">
               <mat-card-content>
                 <p>{{ photo.fileName }}</p>
                 <small>{{ photo.uploadDate | date:'short' }}</small>
@@ -47,7 +47,10 @@ export class GalleryComponent implements OnInit {
   ngOnInit() {
     this.photoService.getAllPhotos().subscribe({
       next: (data: any) => this.photos = data,
-      error: () => this.photos = []
+      error: (err) => {
+        console.error('Error loading photos:', err);
+        this.photos = [];
+      }
     });
   }
 }

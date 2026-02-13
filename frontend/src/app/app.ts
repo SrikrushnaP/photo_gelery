@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { RouterOutlet, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -18,7 +18,7 @@ import { LoadingService } from './services/loading.service';
       <button mat-button routerLink="/search">Search</button>
     </mat-toolbar>
     
-    <div *ngIf="loadingService.loading$ | async" class="loading-overlay">
+    <div *ngIf="isLoading" class="loading-overlay">
       <mat-spinner></mat-spinner>
     </div>
     
@@ -41,6 +41,18 @@ import { LoadingService } from './services/loading.service';
   `]
 })
 export class App {
-  constructor(public loadingService: LoadingService) {}
+  isLoading = false;
+
+  constructor(
+    public loadingService: LoadingService,
+    private cdr: ChangeDetectorRef
+  ) {
+    this.loadingService.loading$.subscribe(loading => {
+      setTimeout(() => {
+        this.isLoading = loading;
+        this.cdr.detectChanges();
+      });
+    });
+  }
 }
 
