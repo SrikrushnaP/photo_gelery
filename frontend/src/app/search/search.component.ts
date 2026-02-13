@@ -26,14 +26,17 @@ import { PhotoService } from '../services/photo.service';
         
         <div *ngIf="results.length > 0" style="margin-top: 30px;">
           <h3>Matching Photos ({{ results.length }}):</h3>
-          <mat-grid-list cols="3" rowHeight="300px" gutterSize="10px">
+          <mat-grid-list cols="3" rowHeight="320px" gutterSize="10px">
             <mat-grid-tile *ngFor="let photo of results">
               <mat-card style="width: 100%; height: 100%;">
-                <img mat-card-image [src]="photo.imageUrl" [alt]="photo.fileName" style="cursor: pointer;" (click)="openPreview(photo.imageUrl)">
+                <img mat-card-image [src]="photo.imageUrl" [alt]="photo.fileName" 
+                     style="cursor: pointer; max-height: 200px; object-fit: cover;" 
+                     (click)="openPreview(photo)">
                 <mat-card-content>
-                  <p>{{ photo.fileName }}</p>
-                  <button mat-icon-button color="primary" (click)="downloadPhoto(photo.imageUrl, photo.fileName)">
+                  <p style="font-size: 12px; margin: 8px 0;">{{ photo.fileName }}</p>
+                  <button mat-raised-button color="accent" (click)="downloadPhoto(photo.imageUrl, photo.fileName)" style="width: 100%;">
                     <mat-icon>download</mat-icon>
+                    Download
                   </button>
                 </mat-card-content>
               </mat-card>
@@ -45,8 +48,20 @@ import { PhotoService } from '../services/photo.service';
       </mat-card-content>
     </mat-card>
 
-    <div *ngIf="previewImage" class="preview-overlay" (click)="closePreview()">
-      <img [src]="previewImage" alt="Preview" style="max-width: 90%; max-height: 90vh;">
+    <div *ngIf="previewPhoto" class="preview-overlay" (click)="closePreview()">
+      <div class="preview-container" (click)="$event.stopPropagation()">
+        <button mat-icon-button class="close-btn" (click)="closePreview()">
+          <mat-icon>close</mat-icon>
+        </button>
+        <img [src]="previewPhoto.imageUrl" [alt]="previewPhoto.fileName">
+        <div class="preview-actions">
+          <p>{{ previewPhoto.fileName }}</p>
+          <button mat-raised-button color="primary" (click)="downloadPhoto(previewPhoto.imageUrl, previewPhoto.fileName)">
+            <mat-icon>download</mat-icon>
+            Download
+          </button>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -54,20 +69,58 @@ import { PhotoService } from '../services/photo.service';
     input { margin: 20px 0; }
     button { margin-left: 10px; }
     mat-grid-tile mat-card { width: 100%; height: 100%; }
-    mat-grid-tile img { max-width: 100%; max-height: 180px; object-fit: cover; }
-    mat-grid-tile mat-card-content { font-size: 12px; }
+    
     .preview-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.95);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10000;
       cursor: pointer;
+    }
+    
+    .preview-container {
+      position: relative;
+      max-width: 90%;
+      max-height: 90vh;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      cursor: default;
+    }
+    
+    .preview-container img {
+      max-width: 100%;
+      max-height: 70vh;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+    }
+    
+    .preview-actions {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .preview-actions p {
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    
+    .preview-actions button {
+      width: 200px;
     }
   `]
 })
@@ -76,7 +129,7 @@ export class SearchComponent {
   previewUrl: string | null = null;
   results: any[] = [];
   searched = false;
-  previewImage: string | null = null;
+  previewPhoto: any = null;
 
   constructor(private photoService: PhotoService) {}
 
@@ -105,12 +158,12 @@ export class SearchComponent {
     }
   }
 
-  openPreview(imageUrl: string) {
-    this.previewImage = imageUrl;
+  openPreview(photo: any) {
+    this.previewPhoto = photo;
   }
 
   closePreview() {
-    this.previewImage = null;
+    this.previewPhoto = null;
   }
 
   downloadPhoto(imageUrl: string, fileName: string) {
@@ -125,6 +178,11 @@ export class SearchComponent {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+      })
+      .catch(err => {
+        console.error('Download failed:', err);
+        // Fallback: open in new tab
+        window.open(imageUrl, '_blank');
       });
   }
 }

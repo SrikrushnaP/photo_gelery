@@ -3,19 +3,19 @@ import { uploadToS3 } from '../services/s3Service.js';
 import { indexFacesFromBytes } from '../services/faceIndexService.js';
 import { searchFacesByImage } from '../services/faceSearchService.js';
 import { ensureCollectionExists } from '../services/collectionService.js';
+import { getRefreshedUrl } from '../services/urlRefreshService.js';
 
 export const uploadPhoto = async (req, res) => {
   try {
     await ensureCollectionExists();
     
-    const { key, url } = await uploadToS3(req.file);
+    const { key } = await uploadToS3(req.file);
     const faceIds = await indexFacesFromBytes(req.file.buffer, key);
 
     const photo = await Photo.create({
       faceId: faceIds,
-      imageUrl: url,
+      s3Key: key,
       fileName: req.file.originalname,
-      externalImageId: key,
     });
 
     res.status(201).json(photo);
@@ -31,13 +31,18 @@ export const searchPhoto = async (req, res) => {
 
     const photos = await Photo.find({ faceId: { $in: faceIds } });
 
-    res.json({
-      matches: photos.map(photo => ({
-        imageUrl: photo.imageUrl,
-        fileName: photo.fileName,
-        uploadDate: photo.uploadDate,
-      })),
-    });
+    const photosWithUrls = await Promise.all(
+      photos.map(async (photo) => {
+        const key = photo.s3Key || photo.externalImageId;
+        return {
+          imageUrl: await getRefreshedUrl(key),
+          fileName: photo.fileName,
+          uploadDate: photo.uploadDate,
+        };
+      })
+    );
+
+    res.json({ matches: photosWithUrls });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -46,7 +51,21 @@ export const searchPhoto = async (req, res) => {
 export const getAllPhotos = async (req, res) => {
   try {
     const photos = await Photo.find().sort({ uploadDate: -1 });
-    res.json(photos);
+    
+    const photosWithUrls = await Promise.all(
+      photos.map(async (photo) => {
+        const key = photo.s3Key || photo.externalImageId;
+        return {
+          _id: photo._id,
+          imageUrl: await getRefreshedUrl(key),
+          fileName: photo.fileName,
+          uploadDate: photo.uploadDate,
+          faceId: photo.faceId,
+        };
+      })
+    );
+
+    res.json(photosWithUrls);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

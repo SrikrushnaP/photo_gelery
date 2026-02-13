@@ -15,12 +15,16 @@ export const uploadToS3 = async (file) => {
     Key: key,
     Body: file.buffer,
     ContentType: file.mimetype,
+    ContentDisposition: 'inline',
   }));
 
   const url = await getSignedUrl(s3Client, new GetObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,
-  }), { expiresIn: 3600 });
+    ResponseContentType: file.mimetype,
+  }), { 
+    expiresIn: 86400 // 24 hours
+  });
 
   return { key, url };
 };

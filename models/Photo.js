@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 
 const photoSchema = new mongoose.Schema({
   faceId: [{ type: String }],
-  imageUrl: { type: String, required: true },
+  s3Key: { type: String },
+  externalImageId: { type: String }, // For backward compatibility
   fileName: { type: String, required: true },
-  externalImageId: { type: String, required: true },
   uploadDate: { type: Date, default: Date.now },
 });
 
